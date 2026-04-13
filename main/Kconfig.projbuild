@@ -821,6 +821,12 @@ config RECEIVE_CUSTOM_MESSAGE
     help
         Enable custom message reception, allow the device to receive custom messages from the server (preferably through the MQTT protocol)
 
+config OPENCAT_BRIDGE_ENABLE
+    bool "Enable OpenCat bridge"
+    default n
+    help
+        Enable OpenCat bridge hooks in JSON pipeline.
+
 menu "Camera Configuration"
     depends on !IDF_TARGET_ESP32
 

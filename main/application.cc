@@ -9,6 +9,9 @@
 #include "mcp_server.h"
 #include "assets.h"
 #include "settings.h"
+#if CONFIG_OPENCAT_BRIDGE_ENABLE
+#include "opencat/opencat_bridge.h"
+#endif
 
 #include <cstring>
 #include <esp_log.h>
@@ -18,6 +21,15 @@
 #include <font_awesome.h>
 
 #define TAG "Application"
+
+#if CONFIG_OPENCAT_BRIDGE_ENABLE
+namespace {
+OpenCatBridge& GetOpenCatBridge() {
+    static OpenCatBridge bridge;
+    return bridge;
+}
+}  // namespace
+#endif
 
 
 Application::Application() {
@@ -486,6 +498,11 @@ void Application::InitializeProtocol() {
         protocol_ = std::make_unique<MqttProtocol>();
     }
 
+#if CONFIG_OPENCAT_BRIDGE_ENABLE
+    // Sender should be set by BT integration. If not set, gateway drops safely.
+    GetOpenCatBridge().SetGatewaySender({});
+#endif
+
     protocol_->OnConnected([this]() {
         DismissAlert();
     });
@@ -542,6 +559,9 @@ void Application::InitializeProtocol() {
                 auto text = cJSON_GetObjectItem(root, "text");
                 if (cJSON_IsString(text)) {
                     ESP_LOGI(TAG, "<< %s", text->valuestring);
+#if CONFIG_OPENCAT_BRIDGE_ENABLE
+                    GetOpenCatBridge().OnAssistantSentence(text->valuestring);
+#endif
                     Schedule([display, message = std::string(text->valuestring)]() {
                         display->SetChatMessage("assistant", message.c_str());
                     });
@@ -551,6 +571,9 @@ void Application::InitializeProtocol() {
             auto text = cJSON_GetObjectItem(root, "text");
             if (cJSON_IsString(text)) {
                 ESP_LOGI(TAG, ">> %s", text->valuestring);
+#if CONFIG_OPENCAT_BRIDGE_ENABLE
+                GetOpenCatBridge().OnUserText(text->valuestring);
+#endif
                 Schedule([display, message = std::string(text->valuestring)]() {
                     display->SetChatMessage("user", message.c_str());
                 });
